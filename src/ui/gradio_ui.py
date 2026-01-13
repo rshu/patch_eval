@@ -60,11 +60,27 @@ def create_ui():
         # Repository Information Section
         with gr.Group():
             gr.Markdown("### 📦 Repository Information")
-            repo_url_input = gr.Textbox(
-                label="Repository URL",
-                placeholder="https://github.com/user/repo",
-                info="Optional: Repository URL for context",
-            )
+            with gr.Row():
+                repo_url_input = gr.Textbox(
+                    label="Repository URL",
+                    placeholder="https://github.com/user/repo",
+                    info="Optional: Repository URL for context",
+                    scale=2
+                )
+                
+                repo_name_input = gr.Textbox(
+                    label="Repository Name",
+                    placeholder="user/repo",
+                    info="Optional: Repository name (e.g., owner/repo)",
+                    scale=1
+                )
+                
+                pr_id_input = gr.Textbox(
+                    label="PR ID",
+                    placeholder="123",
+                    info="Optional: Pull Request ID",
+                    scale=1
+                )
         
         # Issue Statement Section
         with gr.Group():
@@ -187,21 +203,39 @@ def create_ui():
         )
         
         # Helper function to create downloadable JSON file
-        def create_json_file(json_data):
+        def create_json_file(json_data, repo_name=None, pr_id=None):
             """Create a temporary JSON file for download."""
             import tempfile
+            import re
             from datetime import datetime
             
             if json_data is None:
                 return None
             
             try:
-                # Create temporary file
+                # Build filename components
+                filename_parts = ["patch_evaluation"]
+                
+                if repo_name and repo_name.strip():
+                    # Sanitize repo name for filename (replace / and spaces with _)
+                    safe_repo_name = re.sub(r'[^\w\-]', '_', repo_name.strip())
+                    filename_parts.append(safe_repo_name)
+                
+                if pr_id and pr_id.strip():
+                    # Sanitize PR ID for filename
+                    safe_pr_id = re.sub(r'[^\w\-]', '_', pr_id.strip())
+                    filename_parts.append(f"PR{safe_pr_id}")
+                
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename_parts.append(timestamp)
+                
+                prefix = "_".join(filename_parts) + "_"
+                
+                # Create temporary file
                 temp_file = tempfile.NamedTemporaryFile(
                     mode='w',
                     suffix='.json',
-                    prefix=f'patch_evaluation_{timestamp}_',
+                    prefix=prefix,
                     delete=False
                 )
                 
@@ -218,7 +252,7 @@ def create_ui():
                 return None
         
         # Evaluation function
-        def run_evaluation(api_key, repo_url, issue, model, base_url, gt_file, gen_file, notes):
+        def run_evaluation(api_key, repo_url, repo_name, pr_id, issue, model, base_url, gt_file, gen_file, notes):
             """Run patch evaluation."""
             result, error = evaluator.evaluate(
                 api_key=api_key,
@@ -243,7 +277,23 @@ def create_ui():
             if result:
                 try:
                     parsed = json.loads(result)
-                    json_file = create_json_file(parsed)
+                    
+                    # Add metadata to the result
+                    if isinstance(parsed, dict):
+                        metadata = {}
+                        if repo_name and repo_name.strip():
+                            metadata["repository_name"] = repo_name.strip()
+                        if pr_id and pr_id.strip():
+                            metadata["pr_id"] = pr_id.strip()
+                        if repo_url and repo_url.strip():
+                            metadata["repository_url"] = repo_url.strip()
+                        
+                        if metadata:
+                            parsed["metadata"] = metadata
+                            # Update the result string with metadata
+                            result = json.dumps(parsed, indent=2)
+                    
+                    json_file = create_json_file(parsed, repo_name, pr_id)
                     return (
                         gr.update(value=parsed, visible=True),
                         gr.update(value=result, visible=False),
@@ -252,7 +302,7 @@ def create_ui():
                     )
                 except json.JSONDecodeError:
                     # If not valid JSON, still try to create file from raw result
-                    json_file = create_json_file(result)
+                    json_file = create_json_file(result, repo_name, pr_id)
                     return (
                         gr.update(value=None, visible=False),
                         gr.update(value=result, visible=True),
@@ -272,6 +322,8 @@ def create_ui():
             inputs=[
                 api_key_input,
                 repo_url_input,
+                repo_name_input,
+                pr_id_input,
                 issue_statement,
                 model_dropdown,
                 base_url_input,

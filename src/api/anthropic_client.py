@@ -66,16 +66,22 @@ class AnthropicClient(BaseAPIClient):
             )
             
             # Handle different content block types
-            if message.content and len(message.content) > 0:
-                content_block = message.content[0]
-                if hasattr(content_block, 'text'):
-                    content = content_block.text
-                else:
-                    content = str(content_block)
-                logger.debug("Successfully received response from Anthropic API")
-                return content
-            else:
+            if not message.content or len(message.content) == 0:
                 raise APIError("No content in response from Anthropic API")
+            
+            content_block = message.content[0]
+            if hasattr(content_block, 'text'):
+                content = content_block.text
+            elif hasattr(content_block, 'type') and content_block.type == 'text':
+                content = content_block.text
+            else:
+                content = str(content_block)
+            
+            if not content:
+                raise APIError("Empty content in response from Anthropic API")
+            
+            logger.debug(f"Successfully received response from Anthropic API ({len(content)} chars)")
+            return content
         except APIError:
             raise
         except Exception as e:

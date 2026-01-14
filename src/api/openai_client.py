@@ -63,9 +63,15 @@ class OpenAIClient(BaseAPIClient):
                 response_format={"type": "json_object"}
             )
             
+            if not response.choices:
+                raise APIError("No choices in response from OpenAI API")
+            
             content = response.choices[0].message.content
-            logger.debug("Successfully received response from OpenAI API")
-            return content or ""
+            if not content:
+                raise APIError("Empty content in response from OpenAI API")
+            
+            logger.debug(f"Successfully received response from OpenAI API ({len(content)} chars)")
+            return content
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {e}", exc_info=True)
             raise APIError(f"Error calling OpenAI API: {str(e)}") from e

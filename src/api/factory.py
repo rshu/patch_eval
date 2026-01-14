@@ -22,7 +22,7 @@ def get_api_client(
     Get the appropriate API client based on model name.
     
     Args:
-        model_name: Name of the model (e.g., "gpt-5.1", "claude-3-5-sonnet")
+        model_name: Name of the model (e.g., "gpt-5.2", "deepseek-v3-2", "claude-3-5-sonnet")
         api_key: API key for authentication
         base_url: Optional custom base URL
         

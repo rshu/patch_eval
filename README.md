@@ -85,7 +85,7 @@ patch-eval
 1. **Configuration**:
    - Enter your API key (OpenAI or Anthropic)
    - Optionally provide the repository URL
-   - Select the model to use (gpt-5.1 or deepseek-v3-2)
+   - Select the model to use (gpt-5.2, deepseek-v3-2, or claude models)
    - Optionally provide a custom base URL for the API
 
 2. **Input**:
@@ -121,9 +121,28 @@ Patch files should be in standard `.patch` or `.diff` format. The tool also acce
 
 The tool evaluates patches based on the criteria defined in `prompt_ref.txt`:
 
-- **Functional Correctness**: Does the patch correctly address the issue?
-- **Completeness & Coverage**: Does it handle all required updates including tests?
-- **Behavioral Equivalence**: How semantically similar is it to the ground truth?
+- **Functional Correctness (0-5)**: Does the patch correctly address the root cause of the issue?
+- **Completeness & Coverage (0-5)**: Does it handle all required updates including tests, related files, and edge cases?
+- **Behavioral Equivalence to Ground Truth (0-5)**: How semantically similar is it to the ground truth patch?
+
+### Scoring System
+
+Each criterion is scored on a 0-5 integer scale:
+- **0-1**: Unacceptable/Very Poor
+- **2**: Poor
+- **3**: Acceptable
+- **4**: Good
+- **5**: Excellent
+
+The **overall score (0-100)** is calculated using a weighted average:
+- Functional Correctness: 45% weight
+- Completeness & Coverage: 35% weight
+- Behavioral Equivalence: 20% weight
+
+**Verdicts** are determined based on individual scores and overall score:
+- **PASS**: All criteria meet high standards (A≥4, B≥4, C≥3) and overall_score≥70
+- **PARTIAL**: Directionally correct but incomplete (A≥2, overall_score 31-69)
+- **FAIL**: Fundamentally flawed (A≤1 or overall_score≤30)
 
 ## Development
 

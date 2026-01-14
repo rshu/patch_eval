@@ -35,17 +35,32 @@ def read_patch_file(file: Optional[Union[str, Path]]) -> str:
             if not file_path.exists():
                 raise FileReadError(f"File not found: {file_path}")
             
+            if not file_path.is_file():
+                raise FileReadError(f"Path is not a file: {file_path}")
+            
+            # Check file size (warn if very large, but still try to read)
+            file_size = file_path.stat().st_size
+            if file_size > 10 * 1024 * 1024:  # 10MB
+                logger.warning(f"Large file detected ({file_size} bytes), reading may be slow")
+            
             with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
-                logger.debug(f"Successfully read patch file: {file_path}")
+                if not content.strip():
+                    logger.warning("File appears to be empty: %s", file_path)
+                logger.debug("Successfully read patch file: %s (%d chars)", file_path, len(content))
                 return content
         elif hasattr(file, 'read'):
             # File-like object
-            content = file.read()
-            if isinstance(content, bytes):
-                content = content.decode("utf-8", errors="ignore")
-            logger.debug("Successfully read patch file from file-like object")
-            return content
+            try:
+                content = file.read()
+                if isinstance(content, bytes):
+                    content = content.decode("utf-8", errors="ignore")
+                if not content.strip():
+                    logger.warning("File-like object appears to be empty")
+                logger.debug("Successfully read patch file from file-like object (%d chars)", len(content))
+                return content
+            except Exception as e:
+                raise FileReadError(f"Error reading from file-like object: {str(e)}") from e
         else:
             raise FileReadError(f"Unexpected file type: {type(file)}")
     except FileReadError:
@@ -75,7 +90,7 @@ def load_prompt_template() -> str:
         
         with open(template_path, "r", encoding="utf-8") as f:
             template = f.read()
-            logger.debug(f"Successfully loaded prompt template from {template_path}")
+            logger.debug("Successfully loaded prompt template from %s", template_path)
             return template
     except PromptTemplateError:
         raise
@@ -126,7 +141,7 @@ def format_prompt(
         prompt = prompt.replace("{GROUND_TRUTH_PATCH}", ground_truth_patch)
         prompt = prompt.replace("{OPTIONAL_NOTES}", notes_section)
         
-        logger.debug("Successfully formatted prompt")
+        logger.debug("Successfully formatted prompt (%d chars)", len(prompt))
         return prompt
     except PromptTemplateError:
         raise

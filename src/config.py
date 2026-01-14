@@ -18,8 +18,8 @@ class AppConfig:
     share: bool = False
     
     # Model configuration
-    default_model: str = "gpt-5.1"
-    available_models: List[str] = None
+    default_model: str = "gpt-5.2"
+    available_models: Optional[List[str]] = None
     
     # API configuration
     default_temperature: float = 0.3
@@ -30,12 +30,12 @@ class AppConfig:
     max_preview_size: int = 5000
     
     # Supported file types
-    supported_file_types: List[str] = None
+    supported_file_types: Optional[List[str]] = None
     
     def __post_init__(self):
         """Initialize default values."""
         if self.available_models is None:
-            self.available_models = ["gpt-5.1", "deepseek-v3-2"]
+            self.available_models = ["gpt-5.2", "deepseek-v3-2"]
         
         if self.supported_file_types is None:
             self.supported_file_types = [".patch", ".diff", ".txt"]

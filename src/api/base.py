@@ -45,4 +45,4 @@ class BaseAPIClient(ABC):
         Raises:
             APIError: If the API call fails
         """
-        ...
+        raise NotImplementedError("Subclasses must implement the call method")
